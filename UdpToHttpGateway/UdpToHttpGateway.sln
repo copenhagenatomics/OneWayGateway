@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35201.85
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UdpToHttpGateway", "UdpToHttpGateway\UdpToHttpGateway.csproj", "{EDF1D5AF-FB60-496D-B0EE-9C37E6EF6FF3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EDF1D5AF-FB60-496D-B0EE-9C37E6EF6FF3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EDF1D5AF-FB60-496D-B0EE-9C37E6EF6FF3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EDF1D5AF-FB60-496D-B0EE-9C37E6EF6FF3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EDF1D5AF-FB60-496D-B0EE-9C37E6EF6FF3}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6814761E-3F9A-4C7A-868B-469C9CE7D069}
+	EndGlobalSection
+EndGlobal
