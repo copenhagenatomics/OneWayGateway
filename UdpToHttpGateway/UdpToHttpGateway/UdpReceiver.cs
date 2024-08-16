@@ -20,7 +20,7 @@ namespace UdpToHttpGateway
             try
             {
                 while (!stoppingToken.IsCancellationRequested)
-                {//TODO: call Shutdown and then Close when finished ... although do Dispose does it for us? ... what about SetSocketOption?
+                {
                     receivedBytes += await socket.ReceiveFromAsync(bufferMem, SocketFlags.None, receivedAddress, stoppingToken).ConfigureAwait(false);
                     receivedPackets++;
                 }
@@ -44,18 +44,6 @@ namespace UdpToHttpGateway
             socket.Bind(endpoint);
             return socket;
         }
-        //private async Task<UdpClient> BindFirstLocalIP(int port, CancellationToken stoppingToken)
-        //{
-        //    IPAddress[] addresses = await Dns.GetHostAddressesAsync(string.Empty, AddressFamily.InterNetwork, stoppingToken).ConfigureAwait(false);
-        //    if (addresses.Length == 0)
-        //    {
-        //        throw new NotSupportedException("Udp Receiver did not detect any ip addresses");
-        //    }
-
-        //    IPEndPoint endpoint = new(addresses[0], port);
-        //    LogListeningIP(DateTimeOffset.Now, endpoint, addresses);
-        //    return new(endpoint);
-        //}
 
         [LoggerMessage(Level = LogLevel.Information, Message = "{time} - listening on {endpoint} - detected addresses {addresses}.")]
         partial void LogListeningIP(DateTimeOffset time, EndPoint endPoint, IPAddress[] addresses);
