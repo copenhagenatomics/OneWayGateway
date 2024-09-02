@@ -7,12 +7,12 @@
     <InvariantGlobalization>true</InvariantGlobalization>
     <PublishAot>true</PublishAot>
     <UserSecretsId>dotnet-UdpToHttpGateway-b8754cbc-3a8b-4e27-a7ec-5327b8d07f1d</UserSecretsId>
-	<AnalysisMode>All</AnalysisMode>
-	<CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
-	<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-	<GenerateDocumentationFile>true</GenerateDocumentationFile>
-	<EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
-	<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <AnalysisMode>All</AnalysisMode>
+    <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
   </PropertyGroup>
 
   <ItemGroup>
