@@ -15,24 +15,32 @@ sealed partial class UdpReceiver(IOptions<GatewayOptions> options, ILogger<UdpRe
         byte[] buffer = GC.AllocateArray<byte>(length: MaxUDPSize, pinned: true);
         Memory<byte> bufferMem = buffer;
         SocketAddress receivedAddress = new(socket.AddressFamily);
-        long receivedBytes = 0, receivedPackets = 0;
+        long totalReceivedBytes = 0, totalReceivedPackets = 0;
+        using var client = new HttpClient();
 
         try
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                //TODO: support a subset of HttpRequestMessages, mainly we want headers and ReadOnlyMemoryContent 
-                // ... we are posting this elsewhere, but we must not prevent the next udp message from being received (so we can't just reuse the existing buffer memory)
-                // ... we can either copy to a new buffer or get buffers that can be reused and released when we are done processing them (0 copy)
-                //on the client we are to turn the json content into the utf8 bytes, as that's what we should be receiving in the udp packet ...
-                //note the original client must deal with TryComputeLength => false, but we will definitely force to have a length on our ReadOnlyMemoryContent
-                receivedBytes += await socket.ReceiveFromAsync(bufferMem, SocketFlags.None, receivedAddress, stoppingToken).ConfigureAwait(false);
-                receivedPackets++;
+                //For now we just send the request directly, but in later versions there should be a separate sender.
+                //This also means we should have a set of buffers to receive in, which should get freed as they get sent or discarded (if we keep receiving at a rate higher than can be sent to the remote)
+                totalReceivedBytes += await socket.ReceiveFromAsync(bufferMem, SocketFlags.None, receivedAddress, stoppingToken).ConfigureAwait(false);
+                bool succeeded = LimitedHttpParser.TryParseMessage(bufferMem, out HttpRequestMessage? message);
+                try
+                {
+                    if (succeeded && message != null)
+                        _ = await client.SendAsync(message, stoppingToken).ConfigureAwait(false);
+                }
+                finally
+                {
+                    message?.Dispose();
+                }
+                totalReceivedPackets++;
             }
         }
         finally
         {
-            LogReceivedData(DateTimeOffset.Now, receivedPackets, receivedBytes);
+            LogReceivedData(DateTimeOffset.Now, totalReceivedPackets, totalReceivedBytes);
         }
     }
 
