@@ -11,17 +11,17 @@ namespace UdpToHttpGateway.Client;
 public sealed class GatewayClient : IDisposable
 {
     const int MaxUDPSize = 0x10000; //same UdpClient.MaxUDPSize uses
-    static readonly string tooLargeMessage = $"Requests larger than {MaxUDPSize} are not currently supported";
-    static readonly Encoding headersEncoding = Encoding.UTF8;
-    static readonly byte[] Space = headersEncoding.GetBytes(" ");
-    static readonly byte[] CRLF = headersEncoding.GetBytes("\r\n");
-    static readonly byte[] ColonSpace = headersEncoding.GetBytes(": ");
-    static readonly byte[] HttpVersionPrefix = headersEncoding.GetBytes("HTTP/");
-    static readonly byte[] HostPrefix = headersEncoding.GetBytes("Host:");
-    readonly Socket socket;
-    readonly SocketAddress udpToHttpGatewayAddress;
-    readonly byte[] buffer = GC.AllocateArray<byte>(length: MaxUDPSize, pinned: true);
-    readonly byte[] singleByteBuffer = GC.AllocateArray<byte>(length: 1, pinned: true);
+    static readonly string TooLargeMessage = $"Requests larger than {MaxUDPSize} are not currently supported";
+    static readonly Encoding HeadersEncoding = Encoding.UTF8;
+    static readonly byte[] Space = HeadersEncoding.GetBytes(" ");
+    static readonly byte[] CRLF = HeadersEncoding.GetBytes("\r\n");
+    static readonly byte[] ColonSpace = HeadersEncoding.GetBytes(": ");
+    static readonly byte[] HttpVersionPrefix = HeadersEncoding.GetBytes("HTTP/");
+    static readonly byte[] HostPrefix = HeadersEncoding.GetBytes("Host:");
+    readonly Socket GatewaySocket;
+    readonly SocketAddress GatewayAddress;
+    readonly byte[] Buffer = GC.AllocateArray<byte>(length: MaxUDPSize, pinned: true);
+    readonly byte[] SingleByteBuffer = GC.AllocateArray<byte>(length: 1, pinned: true);
 
     /// <summary>
     /// Creates a <see cref="GatewayClient"/> that sends data to the specified gateway IP.
@@ -30,8 +30,8 @@ public sealed class GatewayClient : IDisposable
     public GatewayClient(IPEndPoint udpToHttpGatewayIP)
     {
         ArgumentNullException.ThrowIfNull(udpToHttpGatewayIP);
-        socket = new(udpToHttpGatewayIP.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
-        udpToHttpGatewayAddress = udpToHttpGatewayIP.Serialize();
+        GatewaySocket = new(udpToHttpGatewayIP.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+        GatewayAddress = udpToHttpGatewayIP.Serialize();
     }
 
     /// <summary>
@@ -45,7 +45,7 @@ public sealed class GatewayClient : IDisposable
         ArgumentNullException.ThrowIfNull(request);
         Uri uri = request.RequestUri ?? throw new NotSupportedException($"Requests without an Uri are not supported.");
         if (!uri.IsAbsoluteUri) throw new NotSupportedException($"Requests with a relative Uri are not supported.");
-        Span<byte> buff = buffer.AsSpan();
+        Span<byte> buff = Buffer.AsSpan();
 
         AddRequestLine(request, uri, ref buff);
         AddHostHeaderIfNotExplicitlySpecified(request, uri, ref buff);//the host header is required for a a valid request (although the gateway would add it automatically if missing)
@@ -53,7 +53,7 @@ public sealed class GatewayClient : IDisposable
         SerializeHeaderFields(request.Content?.Headers, ref buff);
         AddAndAdvance(string.Empty, CRLF, ref buff);//an empty line signals the end of the header
 
-        return AddContentAndSend(request, buffer.AsMemory(), buff.Length, token);//we split at this level to avoid mixing the async method + Span variable
+        return AddContentAndSend(request, Buffer.AsMemory(), buff.Length, token);//we split at this level to avoid mixing the async method + Span variable
 
         static void AddRequestLine(HttpRequestMessage request, Uri uri, ref Span<byte> destination)
         {
@@ -78,8 +78,8 @@ public sealed class GatewayClient : IDisposable
             totalBytes += await CopyTo(stream, udpMessageBuffer[contentStartIndex..], token).ConfigureAwait(false);
         }
 
-        _ = await socket.SendToAsync(
-            udpMessageBuffer[0..totalBytes], SocketFlags.None, udpToHttpGatewayAddress, token).ConfigureAwait(false);
+        _ = await GatewaySocket.SendToAsync(
+            udpMessageBuffer[0..totalBytes], SocketFlags.None, GatewayAddress, token).ConfigureAwait(false);
     }
 
     async Task<int> CopyTo(Stream stream, Memory<byte> destination, CancellationToken token)
@@ -96,8 +96,8 @@ public sealed class GatewayClient : IDisposable
             return totalBytes;
 
         //confirm there is no more data beyond what fits in the destination by trying to read an extra byte
-        int lastReadBytes = await stream.ReadAsync(singleByteBuffer, token).ConfigureAwait(false);
-        return lastReadBytes == 0 ? totalBytes : throw new NotSupportedException(tooLargeMessage);
+        int lastReadBytes = await stream.ReadAsync(SingleByteBuffer, token).ConfigureAwait(false);
+        return lastReadBytes == 0 ? totalBytes : throw new NotSupportedException(TooLargeMessage);
     }
 
     static void SerializeHeaderFields(HttpHeaders? headers, ref Span<byte> destination)
@@ -114,22 +114,22 @@ public sealed class GatewayClient : IDisposable
 
     static void AddAndAdvance(string value, in ReadOnlySpan<byte> suffix, ref Span<byte> destination)
     {
-        if (!Encoding.UTF8.TryGetBytes(value, destination, out int writtenBytes)) throw new NotSupportedException(tooLargeMessage);
+        if (!Encoding.UTF8.TryGetBytes(value, destination, out int writtenBytes)) throw new NotSupportedException(TooLargeMessage);
         destination = destination[writtenBytes..];
-        if (!suffix.TryCopyTo(destination)) throw new NotSupportedException(tooLargeMessage);
+        if (!suffix.TryCopyTo(destination)) throw new NotSupportedException(TooLargeMessage);
         destination = destination[suffix.Length..];
     }
 
     static void AddAndAdvance(in ReadOnlySpan<byte> prefix, string value, in ReadOnlySpan<byte> suffix, ref Span<byte> destination)
     {
-        if (!prefix.TryCopyTo(destination)) throw new NotSupportedException(tooLargeMessage);
+        if (!prefix.TryCopyTo(destination)) throw new NotSupportedException(TooLargeMessage);
         destination = destination[prefix.Length..];
-        if (!Encoding.UTF8.TryGetBytes(value, destination, out int writtenBytes)) throw new NotSupportedException(tooLargeMessage);
+        if (!Encoding.UTF8.TryGetBytes(value, destination, out int writtenBytes)) throw new NotSupportedException(TooLargeMessage);
         destination = destination[writtenBytes..];
-        if (!suffix.TryCopyTo(destination)) throw new NotSupportedException(tooLargeMessage);
+        if (!suffix.TryCopyTo(destination)) throw new NotSupportedException(TooLargeMessage);
         destination = destination[suffix.Length..];
     }
 
     /// <inheritdoc/>
-    public void Dispose() => socket.Dispose();
+    public void Dispose() => GatewaySocket.Dispose();
 }
