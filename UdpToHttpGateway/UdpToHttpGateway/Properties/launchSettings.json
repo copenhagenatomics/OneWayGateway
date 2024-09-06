@@ -8,7 +8,8 @@
       "dotnetRunMessages": true
     },
     "Container (Dockerfile)": {
-      "commandName": "Docker"
+      "commandName": "Docker",
+      "DockerfileRunArguments": "-p 4280:4280/udp"
     }
   },
   "$schema": "https://json.schemastore.org/launchsettings.json"

@@ -24,23 +24,42 @@ sealed partial class UdpReceiver(IOptions<GatewayOptions> options, ILogger<UdpRe
             {
                 //For now we just send the request directly, but in later versions there should be a separate sender.
                 //This also means we should have a set of buffers to receive in, which should get freed as they get sent or discarded (if we keep receiving at a rate higher than can be sent to the remote)
-                totalReceivedBytes += await socket.ReceiveFromAsync(bufferMem, SocketFlags.None, receivedAddress, stoppingToken).ConfigureAwait(false);
-                bool succeeded = LimitedHttpParser.TryParseMessage(bufferMem, out HttpRequestMessage? message);
-                try
-                {
-                    if (succeeded && message != null)
-                        _ = await client.SendAsync(message, stoppingToken).ConfigureAwait(false);
-                }
-                finally
-                {
-                    message?.Dispose();
-                }
+                int receivedBytes = await socket.ReceiveFromAsync(bufferMem, SocketFlags.None, receivedAddress, stoppingToken).ConfigureAwait(false);
+                totalReceivedBytes += receivedBytes;
                 totalReceivedPackets++;
+                await ParseAndSendMessage(client, bufferMem[..receivedBytes], stoppingToken).ConfigureAwait(false);
             }
         }
         finally
         {
             LogReceivedData(DateTimeOffset.Now, totalReceivedPackets, totalReceivedBytes);
+        }
+    }
+
+    async ValueTask ParseAndSendMessage(HttpClient client, Memory<byte> bytes, CancellationToken stoppingToken)
+    {
+        HttpRequestMessage? message = null;
+        try
+        {
+            bool succeeded = LimitedHttpParser.TryParseMessage(bytes, out message);
+            try
+            {
+                if (succeeded && message != null)
+                {
+                    HttpResponseMessage response = await client.SendAsync(message, stoppingToken).ConfigureAwait(false);
+                    LogSending(DateTimeOffset.UtcNow, response, message);
+                }
+                else
+                    LogParsingError(DateTimeOffset.UtcNow, bytes);
+            }
+            finally
+            {
+                message?.Dispose();
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            LogSendingError(DateTimeOffset.UtcNow, message, ex);
         }
     }
 
@@ -52,11 +71,19 @@ sealed partial class UdpReceiver(IOptions<GatewayOptions> options, ILogger<UdpRe
             throw new NotSupportedException("Udp Receiver did not detect any ip addresses");
         }
 
-        LogListeningIP(DateTimeOffset.Now, endpoint, addresses);
+        LogListeningIP(DateTimeOffset.UtcNow, endpoint, addresses);
+
         Socket socket = new(endpoint.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
         socket.Bind(endpoint);
         return socket;
     }
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "{time} - received response {response} for message {message}.")]
+    partial void LogSending(DateTimeOffset time, HttpResponseMessage response, HttpRequestMessage message);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{time} - unexpected error sending {message}.")]
+    partial void LogSendingError(DateTimeOffset time, HttpRequestMessage? message, Exception ex);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{time} - unexpected parsing error sending {message}.")]
+    partial void LogParsingError(DateTimeOffset time, Memory<byte> message);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{time} - listening on {endpoint} - detected addresses {addresses}.")]
     partial void LogListeningIP(DateTimeOffset time, EndPoint endPoint, IPAddress[] addresses);

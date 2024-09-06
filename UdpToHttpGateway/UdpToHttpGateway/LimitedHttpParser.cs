@@ -15,7 +15,7 @@ static class LimitedHttpParser
     {
         Span<byte> bytes = bytesMemory.Span;
         request = null;
-        if (!TryGetLine(bytes, out Span<byte> requestLine) ||
+        if (!TryGetLine(ref bytes, out Span<byte> requestLine) ||
             !TryGetNextToken(ref requestLine, out string? method, Space) ||
             !TryGetNextToken(ref requestLine, out string? uri, Space) ||
             !TryGetNextToken(ref requestLine, out string? _, Slash) ||
@@ -28,25 +28,27 @@ static class LimitedHttpParser
         if (endOfHeaderIndex < 0)
             return false;
 
-        Span<byte> headersBytes = bytes[..(endOfHeaderIndex + DoubleCRLF.Length)];
-        if (requestLine.Length + headersBytes.Length != bytesMemory.Length)
-            request.Content = new ReadOnlyMemoryContent(bytesMemory[(requestLine.Length + headersBytes.Length)..]);
+        int headersLength = endOfHeaderIndex + DoubleCRLF.Length;
+        int contentLength = bytes.Length - headersLength;
+        if (contentLength > 0)
+            request.Content = new ReadOnlyMemoryContent(bytesMemory[^contentLength..]);
 
-        bytes = bytes[requestLine.Length..];
-        while (TryGetLine(bytes, out Span<byte> headerLine) && !headerLine.IsEmpty)
+        bytes = bytes[..headersLength];
+        while (TryGetLine(ref bytes, out Span<byte> headerLine) && !headerLine.IsEmpty)
         {
             if (!TryGetNextToken(ref headerLine, out string? name, ColonSpace) ||
                 !TryGetNextToken(ref headerLine, out string? value, CRLF) ||
-                !request.Headers.TryAddWithoutValidation(name, value) ||
-                request.Content?.Headers.TryAddWithoutValidation(name, value) == false)
+                (
+                    !request.Headers.TryAddWithoutValidation(name, value) &&
+                    request.Content?.Headers.TryAddWithoutValidation(name, value) == false)
+                )
                 return false;
-            bytes = bytes[headerLine.Length..];
         }
 
         return true;
     }
 
-    static bool TryGetLine(Span<byte> bytes, out Span<byte> requestLineBytes)
+    static bool TryGetLine(ref Span<byte> bytes, out Span<byte> requestLineBytes)
     {
         requestLineBytes = [];
         int endOfRequestLine = bytes.IndexOf(CRLF);
@@ -54,6 +56,7 @@ static class LimitedHttpParser
             return false;
 
         requestLineBytes = bytes[0..(endOfRequestLine + CRLF.Length)];
+        bytes = bytes[requestLineBytes.Length..];
         return true;
     }
 

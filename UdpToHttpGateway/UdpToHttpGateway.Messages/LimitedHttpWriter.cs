@@ -10,7 +10,7 @@ static class LimitedHttpWriter
     static readonly byte[] CRLF = HeadersEncoding.GetBytes("\r\n");
     static readonly byte[] ColonSpace = HeadersEncoding.GetBytes(": ");
     static readonly byte[] HttpVersionPrefix = HeadersEncoding.GetBytes("HTTP/");
-    static readonly byte[] HostPrefix = HeadersEncoding.GetBytes("Host:");
+    static readonly byte[] HostPrefix = HeadersEncoding.GetBytes("Host: ");
     static readonly byte[] SingleByteBuffer = GC.AllocateArray<byte>(length: 1, pinned: true);
 
     /// <summary>
@@ -37,7 +37,7 @@ static class LimitedHttpWriter
         AddAndAdvance(string.Empty, CRLF, ref buff);//an empty line signals the end of the header
 
         //we split at this level to avoid mixing the async method + Span variable above
-        return AddContent(request, destination, buff.Length, token);
+        return AddContent(request, destination, destination.Length - buff.Length, token);
     }
 
     static void AddHostHeaderIfNotExplicitlySpecified(HttpRequestMessage request, Uri uri, ref Span<byte> buff)
