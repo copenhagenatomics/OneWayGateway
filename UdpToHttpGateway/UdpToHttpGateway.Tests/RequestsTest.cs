@@ -19,6 +19,7 @@ public class RequestsTest
 {
     const int RequestTimeout = 1000;
     const int HttpPort = 9080;
+    static readonly IPEndPoint GatewayIp = IPEndPoint.Parse("127.0.0.1:4280");
     static IPAddress? testIp;
 
     [ClassInitialize]
@@ -55,10 +56,7 @@ public class RequestsTest
  """);
 
     [TestMethod]
-    public Task TestJsonRequest()
-    {
-        using var content = JsonContent.Create(new { MyValues = "abc" });
-        return TestRequest(HttpMethod.Post, "/", content, $"""
+    public Task TestJsonRequest() => TestRequest(HttpMethod.Post, "/", () => JsonContent.Create(new { MyValues = "abc" }), $"""
  POST http://{testIp}:9080/ HTTP/1.1
  Host: 172.19.253.73:9080
  Content-Type: application/json; charset=utf-8
@@ -66,29 +64,46 @@ public class RequestsTest
 
 
  """);
-    }
 
-    static Task TestRequest(HttpMethod method, string relativeUri, byte[]? contentBytes, string expectedHeader)
-    {
-        using ReadOnlyMemoryContent? content = contentBytes != null ? new ReadOnlyMemoryContent(contentBytes) : null;
-        return TestRequest(method, relativeUri, content, expectedHeader);
-    }
+    static Task TestRequest(HttpMethod method, string relativeUri, byte[]? contentBytes, string expectedHeader) =>
+        TestRequest(method, relativeUri, () => contentBytes != null ? new ReadOnlyMemoryContent(contentBytes) : null, expectedHeader);
 
-    static async Task TestRequest(HttpMethod method, string relativeUri, HttpContent? content, string expectedHeader)
+    static async Task TestRequest(HttpMethod method, string relativeUri, Func<HttpContent?> getContent, string expectedHeader)
     {
         var received = Channel.CreateUnbounded<(string, byte[])>();
-        using HttpRequestMessage request = new(method, new Uri(new Uri($"http://{testIp}:{HttpPort}"), relativeUri));
-        if (content != null)
-            request.Content = content;
-        using var gatewayClient = new GatewayClient(IPEndPoint.Parse("127.0.0.1:4280"));
         WebApplication web = CreateFakeServer(HttpPort, received);
         await using System.Runtime.CompilerServices.ConfiguredAsyncDisposable _ = web.ConfigureAwait(false);
-        await gatewayClient.Send(request).ConfigureAwait(false);
-        await AssertFakeServerReceivedExpectedRequest(content != null ? await content.ReadAsByteArrayAsync().ConfigureAwait(false) : [], expectedHeader, received).ConfigureAwait(false);
+        await TestGatewayClientRequest(method, relativeUri, getContent, expectedHeader, received).ConfigureAwait(false);
+        await TestHttpClientRequest(method, relativeUri, getContent, expectedHeader, received).ConfigureAwait(false);
         await web.StopAsync().ConfigureAwait(false);
     }
 
+    static async ValueTask TestGatewayClientRequest(HttpMethod method, string relativeUri, Func<HttpContent?> getContent, string expectedHeader, Channel<(string, byte[])> received)
+    {
+        using HttpRequestMessage request = NewRequest(method, relativeUri, getContent);
+        using var gatewayClient = new GatewayClient(GatewayIp);
+        await gatewayClient.Send(request).ConfigureAwait(false);
+        await AssertReceivedExpectedRequestValues(expectedHeader, received, request).ConfigureAwait(false);
+    }
 
+    static async ValueTask TestHttpClientRequest(HttpMethod method, string relativeUri, Func<HttpContent?> getContent, string expectedHeader, Channel<(string, byte[])> received)
+    {
+        using HttpRequestMessage request = NewRequest(method, relativeUri, getContent);
+        using var handler = new SendViaUdpGatewayMessageHandler(GatewayIp);
+        using var client = new HttpClient(handler);
+        HttpResponseMessage res = await client.SendAsync(request).ConfigureAwait(false);
+        Assert.AreEqual(HttpStatusCode.OK, res.StatusCode);
+        await AssertReceivedExpectedRequestValues(expectedHeader, received, request).ConfigureAwait(false);
+    }
+
+    static async Task AssertReceivedExpectedRequestValues(string expectedHeader, Channel<(string, byte[])> received, HttpRequestMessage request)
+    {
+        byte[] expectedContent = request.Content != null ? await request.Content.ReadAsByteArrayAsync().ConfigureAwait(false) : [];
+        await AssertFakeServerReceivedExpectedRequest(expectedContent, expectedHeader, received).ConfigureAwait(false);
+    }
+
+    static HttpRequestMessage NewRequest(HttpMethod method, string relativeUri, Func<HttpContent?> getContent) =>
+        new(method, new Uri(new Uri($"http://{testIp}:{HttpPort}"), relativeUri)) { Content = getContent() };
     static async Task AssertFakeServerReceivedExpectedRequest(byte[] expectedContent, string expectedHeader, Channel<(string, byte[])> received)
     {
         try

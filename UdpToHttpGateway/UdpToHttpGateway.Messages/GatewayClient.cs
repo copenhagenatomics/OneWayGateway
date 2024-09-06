@@ -3,6 +3,7 @@ using System.Net.Sockets;
 
 namespace UdpToHttpGateway.Client;
 
+/// <summary>This class allows to send http requests via the UdpToHttpGateway.</summary>
 /// <remarks>
 /// This client does not support parallel sends, use separate instances or an object pool.
 /// </remarks>
