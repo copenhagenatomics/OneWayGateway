@@ -68,9 +68,27 @@ public class RequestsTest
     [TestMethod]
     public async Task TestSendingInParallel()
     {
-        const int sendCount = 100;
-        HttpMethod method = HttpMethod.Post;
-        string relativeUri = "/";
+        var received = Channel.CreateUnbounded<(string headers, byte[] content)>();
+        WebApplication web = CreateFakeServer(HttpPort, received);
+        await using System.Runtime.CompilerServices.ConfiguredAsyncDisposable _ = web.ConfigureAwait(false);
+        using var handler = new SendViaUdpGatewayMessageHandler(GatewayIp);
+        using var client = new HttpClient(handler);
+
+        (string expectedHeader, List<byte[]> contentToSend) = GetRequestDataToSend(100);
+        await Parallel.ForEachAsync(contentToSend, async (c, _) =>
+        {
+            await SendHttpClientRequest(client, HttpMethod.Post, "/", () => new ReadOnlyMemoryContent(c)).ConfigureAwait(false);
+        }).ConfigureAwait(false);
+
+        List<(string headers, byte[] content)> all = await GetReceivedOrderedByFirstByteOfContent(received, contentToSend.Count).ConfigureAwait(false);
+        for (int i = 0; i < all.Count; i++)
+            AssertExpectedValues(expectedHeader, contentToSend[i], all[i].headers, all[i].content);
+
+        await web.StopAsync().ConfigureAwait(false);
+    }
+
+    static (string expectedHeader, List<byte[]>) GetRequestDataToSend(int count)
+    {
         string expectedHeader = $"""
  POST http://{testIp}:9080/ HTTP/1.1
  Host: 172.19.253.73:9080
@@ -78,18 +96,19 @@ public class RequestsTest
 
 
  """;
-        var contentToSend = Enumerable.Range(0, sendCount).Select(i => Enumerable.Range(i, 10).Select(i => (byte)i).ToArray()).ToList();
-        var received = Channel.CreateUnbounded<(string headers, byte[] content)>();
-        WebApplication web = CreateFakeServer(HttpPort, received);
-        await using System.Runtime.CompilerServices.ConfiguredAsyncDisposable _ = web.ConfigureAwait(false);
-        using var handler = new SendViaUdpGatewayMessageHandler(GatewayIp);
-        using var client = new HttpClient(handler);
+        var contentToSend = Enumerable.Range(0, count).Select(i => Enumerable.Range(i, 10).Select(i => (byte)i).ToArray()).ToList();
+        return (expectedHeader, contentToSend);
+    }
 
-        await Parallel.ForEachAsync(contentToSend, async (c, _) =>
-        {
-            await SendHttpClientRequest(client, method, relativeUri, () => new ReadOnlyMemoryContent(c)).ConfigureAwait(false);
-        }).ConfigureAwait(false);
+    static void AssertExpectedValues(string expectedHeader, byte[] expectedContent, string headers, byte[] content)
+    {
+        Assert.AreEqual(expectedHeader, headers, $"Headers did not match. ExpectedToUtf8ToHex: {Convert.ToHexString(Encoding.UTF8.GetBytes(expectedHeader))}. ActualToUtf8ToHex: {Convert.ToHexString(Encoding.UTF8.GetBytes(headers))}");
+        CollectionAssert.AreEqual(expectedContent, content, $"Content did not match. ExpectedToHex: {Convert.ToHexString(expectedContent)}. ActualToHex: {Convert.ToHexString(content)}");
+    }
 
+    static async Task<List<(string headers, byte[] content)>> GetReceivedOrderedByFirstByteOfContent(
+        Channel<(string headers, byte[] content)> received, int count)
+    {
         using var cts = new CancellationTokenSource(3000);
         var all = new List<(string headers, byte[] content)>(100);
         await foreach ((string headers, byte[] content) r in received.Reader.ReadAllAsync(cts.Token).ConfigureAwait(false))
@@ -99,17 +118,8 @@ public class RequestsTest
         }
 
         all = [.. all.OrderBy(a => a.content[0])];
-        Assert.AreEqual(100, all.Count);
-        for (int i = 0; i < all.Count; i++)
-        {
-            string headers = all[i].headers;
-            byte[] content = all[i].content;
-            byte[] expectedContent = Enumerable.Range(i, 10).Select(i => (byte)i).ToArray();
-            Assert.AreEqual(expectedHeader, headers, $"Headers did not match. ExpectedToUtf8ToHex: {Convert.ToHexString(Encoding.UTF8.GetBytes(expectedHeader))}. ActualToUtf8ToHex: {Convert.ToHexString(Encoding.UTF8.GetBytes(headers))}");
-            CollectionAssert.AreEqual(expectedContent, content, $"Content did not match. ExpectedToHex: {Convert.ToHexString(expectedContent)}. ActualToHex: {Convert.ToHexString(content)}");
-        }
-
-        await web.StopAsync().ConfigureAwait(false);
+        Assert.AreEqual(count, all.Count);
+        return all;
     }
 
     static Task TestRequest(HttpMethod method, string relativeUri, byte[]? contentBytes, string expectedHeader) =>
