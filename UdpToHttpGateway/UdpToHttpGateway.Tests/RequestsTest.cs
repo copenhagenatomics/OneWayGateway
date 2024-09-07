@@ -65,6 +65,57 @@ public class RequestsTest
 
  """);
 
+    [TestMethod]
+    public async Task TestSendingInParallel()
+    {
+        const int sendCount = 100;
+        HttpMethod method = HttpMethod.Post;
+        string relativeUri = "/";
+        string expectedHeader = $"""
+ POST http://{testIp}:9080/ HTTP/1.1
+ Host: 172.19.253.73:9080
+ Content-Length: 10
+
+
+ """;
+        var contentToSend = Enumerable.Range(0, sendCount).Select(i => Enumerable.Range(i, 10).Select(i => (byte)i).ToArray()).ToList();
+        var received = Channel.CreateUnbounded<(string headers, byte[] content)>();
+        WebApplication web = CreateFakeServer(HttpPort, received);
+        await using System.Runtime.CompilerServices.ConfiguredAsyncDisposable _ = web.ConfigureAwait(false);
+        using var handler = new SendViaUdpGatewayMessageHandler(GatewayIp);
+        using var client = new HttpClient(handler);
+
+        //foreach (byte[] c in contentToSend)
+        //{
+        //    await SendHttpClientRequest(client, method, relativeUri, () => new ReadOnlyMemoryContent(c)).ConfigureAwait(false);
+        //}
+        await Parallel.ForEachAsync(contentToSend, async (c, _) =>
+        {
+            await SendHttpClientRequest(client, method, relativeUri, () => new ReadOnlyMemoryContent(c)).ConfigureAwait(false);
+        }).ConfigureAwait(false);
+
+        using var cts = new CancellationTokenSource(3000);
+        var all = new List<(string headers, byte[] content)>(100);
+        await foreach ((string headers, byte[] content) r in received.Reader.ReadAllAsync(cts.Token).ConfigureAwait(false))
+        {
+            all.Add(r);
+            if (all.Count == 100) break;
+        }
+
+        all = [.. all.OrderBy(a => a.content[0])];
+        Assert.AreEqual(100, all.Count);
+        for (int i = 0; i < all.Count; i++)
+        {
+            string headers = all[i].headers;
+            byte[] content = all[i].content;
+            byte[] expectedContent = Enumerable.Range(i, 10).Select(i => (byte)i).ToArray();
+            Assert.AreEqual(expectedHeader, headers, $"Headers did not match. ExpectedToUtf8ToHex: {Convert.ToHexString(Encoding.UTF8.GetBytes(expectedHeader))}. ActualToUtf8ToHex: {Convert.ToHexString(Encoding.UTF8.GetBytes(headers))}");
+            CollectionAssert.AreEqual(expectedContent, content, $"Content did not match. ExpectedToHex: {Convert.ToHexString(expectedContent)}. ActualToHex: {Convert.ToHexString(content)}");
+        }
+
+        await web.StopAsync().ConfigureAwait(false);
+    }
+
     static Task TestRequest(HttpMethod method, string relativeUri, byte[]? contentBytes, string expectedHeader) =>
         TestRequest(method, relativeUri, () => contentBytes != null ? new ReadOnlyMemoryContent(contentBytes) : null, expectedHeader);
 
@@ -83,22 +134,28 @@ public class RequestsTest
         using HttpRequestMessage request = NewRequest(method, relativeUri, getContent);
         using var gatewayClient = new GatewayClient(GatewayIp);
         await gatewayClient.Send(request).ConfigureAwait(false);
-        await AssertReceivedExpectedRequestValues(expectedHeader, received, request).ConfigureAwait(false);
+        await AssertReceivedExpectedRequestValues(expectedHeader, received, request.Content).ConfigureAwait(false);
     }
 
     static async ValueTask TestHttpClientRequest(HttpMethod method, string relativeUri, Func<HttpContent?> getContent, string expectedHeader, Channel<(string, byte[])> received)
     {
-        using HttpRequestMessage request = NewRequest(method, relativeUri, getContent);
         using var handler = new SendViaUdpGatewayMessageHandler(GatewayIp);
         using var client = new HttpClient(handler);
-        HttpResponseMessage res = await client.SendAsync(request).ConfigureAwait(false);
-        Assert.AreEqual(HttpStatusCode.OK, res.StatusCode);
-        await AssertReceivedExpectedRequestValues(expectedHeader, received, request).ConfigureAwait(false);
+        await SendHttpClientRequest(client, method, relativeUri, getContent).ConfigureAwait(false);
+        using HttpContent? expectedContent = getContent();
+        await AssertReceivedExpectedRequestValues(expectedHeader, received, expectedContent).ConfigureAwait(false);
     }
 
-    static async Task AssertReceivedExpectedRequestValues(string expectedHeader, Channel<(string, byte[])> received, HttpRequestMessage request)
+    static async ValueTask SendHttpClientRequest(HttpClient client, HttpMethod method, string relativeUri, Func<HttpContent?> getContent)
     {
-        byte[] expectedContent = request.Content != null ? await request.Content.ReadAsByteArrayAsync().ConfigureAwait(false) : [];
+        using HttpRequestMessage request = NewRequest(method, relativeUri, getContent);
+        HttpResponseMessage res = await client.SendAsync(request).ConfigureAwait(false);
+        Assert.AreEqual(HttpStatusCode.OK, res.StatusCode);
+    }
+
+    static async Task AssertReceivedExpectedRequestValues(string expectedHeader, Channel<(string, byte[])> received, HttpContent? expectedHttpContent)
+    {
+        byte[] expectedContent = expectedHttpContent != null ? await expectedHttpContent.ReadAsByteArrayAsync().ConfigureAwait(false) : [];
         await AssertFakeServerReceivedExpectedRequest(expectedContent, expectedHeader, received).ConfigureAwait(false);
     }
 

@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using Microsoft.Extensions.ObjectPool;
+using System.Net;
 
 namespace UdpToHttpGateway.Client;
 
@@ -11,15 +12,24 @@ namespace UdpToHttpGateway.Client;
 /// 
 /// Note that since the gateway is strictly send only, the handler returns fake OK=200 responses.
 /// </remarks>
-public class SendViaUdpGatewayMessageHandler(IPEndPoint udpToHttpGatewayIP) : HttpMessageHandler
+public sealed class SendViaUdpGatewayMessageHandler(IPEndPoint udpToHttpGatewayIP) : HttpMessageHandler
 {
+    readonly DefaultObjectPool<GatewayClient> gatewayClientPool = new(new ClientObjectPolicy(udpToHttpGatewayIP));
     readonly GatewayClient client = new(udpToHttpGatewayIP);
 
     /// <inheritdoc/>
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        await client.Send(request, cancellationToken).ConfigureAwait(false);
-        return new(HttpStatusCode.OK);
+        GatewayClient client = gatewayClientPool.Get();
+        try
+        {
+            await client.Send(request, cancellationToken).ConfigureAwait(false);
+            return new(HttpStatusCode.OK);
+        }
+        finally
+        {
+            gatewayClientPool.Return(client);
+        }
     }
 
     /// <inheritdoc/>
@@ -27,5 +37,11 @@ public class SendViaUdpGatewayMessageHandler(IPEndPoint udpToHttpGatewayIP) : Ht
     {
         base.Dispose(disposing);
         client.Dispose();
+    }
+
+    sealed class ClientObjectPolicy(IPEndPoint udpToHttpGatewayIP) : PooledObjectPolicy<GatewayClient>
+    {
+        public override GatewayClient Create() => new(udpToHttpGatewayIP);
+        public override bool Return(GatewayClient obj) => true;
     }
 }
