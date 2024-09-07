@@ -85,10 +85,6 @@ public class RequestsTest
         using var handler = new SendViaUdpGatewayMessageHandler(GatewayIp);
         using var client = new HttpClient(handler);
 
-        //foreach (byte[] c in contentToSend)
-        //{
-        //    await SendHttpClientRequest(client, method, relativeUri, () => new ReadOnlyMemoryContent(c)).ConfigureAwait(false);
-        //}
         await Parallel.ForEachAsync(contentToSend, async (c, _) =>
         {
             await SendHttpClientRequest(client, method, relativeUri, () => new ReadOnlyMemoryContent(c)).ConfigureAwait(false);
