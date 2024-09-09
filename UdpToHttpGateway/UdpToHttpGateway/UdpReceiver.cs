@@ -11,7 +11,7 @@ sealed partial class UdpReceiver(IOptions<GatewayOptions> options, ILogger<UdpRe
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using Socket socket = await Bind(IPEndPoint.Parse(options.Value.EndPoint), stoppingToken).ConfigureAwait(false);
-        const int MaxUDPSize = 0x10000; //same UdpClient uses
+        const int MaxUDPSize = 0x10000; //same System.Net.Sockets.UdpClient uses, which makes the receiving buffer larger than the max for ipv4 udp packets
         byte[] buffer = GC.AllocateArray<byte>(length: MaxUDPSize, pinned: true);
         Memory<byte> bufferMem = buffer;
         SocketAddress receivedAddress = new(socket.AddressFamily);

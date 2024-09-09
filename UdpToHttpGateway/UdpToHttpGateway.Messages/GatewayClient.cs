@@ -9,7 +9,7 @@ namespace UdpToHttpGateway.Client;
 /// </remarks>
 public sealed class GatewayClient : IDisposable
 {
-    const int MaxUDPSize = 0x10000; //same UdpClient.MaxUDPSize uses
+    const int MaxUDPSize = 0x10000; //same System.Net.Sockets.UdpClient uses, which makes the sending buffer larger than the max for ipv4 udp packets
     readonly Socket GatewaySocket;
     readonly SocketAddress GatewayAddress;
     readonly byte[] Buffer = GC.AllocateArray<byte>(length: MaxUDPSize, pinned: true);

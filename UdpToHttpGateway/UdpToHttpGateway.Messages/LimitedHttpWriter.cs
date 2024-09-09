@@ -31,12 +31,11 @@ static class LimitedHttpWriter
         AddAndAdvance(request.Method.Method, Space, ref buff);
         AddAndAdvance(uri.OriginalString, Space, ref buff);
         AddAndAdvance(HttpVersionPrefix, request.Version?.ToString(2) ?? "1.1", CRLF, ref buff);
-        AddHostHeaderIfNotExplicitlySpecified(request, uri, ref buff);//the host header is required for a a valid request (although the gateway would add it automatically if missing)
+        AddHostHeaderIfNotExplicitlySpecified(request, uri, ref buff);//the host header is required for a valid request (although the gateway would add it automatically if missing)
         SerializeHeaderFields(request.Headers, ref buff);
         SerializeHeaderFields(request.Content?.Headers, ref buff);
         AddAndAdvance(string.Empty, CRLF, ref buff);//an empty line signals the end of the header
 
-        //we split at this level to avoid mixing the async method + Span variable above
         return AddContent(request, destination, destination.Length - buff.Length, token);
     }
 
