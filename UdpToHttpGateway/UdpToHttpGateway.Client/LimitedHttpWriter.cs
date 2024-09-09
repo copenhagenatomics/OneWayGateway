@@ -2,6 +2,14 @@
 using System.Text;
 
 namespace UdpToHttpGateway.Client;
+
+/// <remarks>
+/// This writer has mostly been built for use with the also limited parser of the UdpToHttpGateway.
+/// 
+/// It should do fine with <see cref="HttpRequestMessage"/> messages in general, but you should carefully test it works for your type of messages.
+/// 
+/// One known limitation is that it deals poorly with some cookie headers, which we are not expecting to be used given the one way nature of the gateway.
+/// </remarks>
 static class LimitedHttpWriter
 {
     const string TooLargeMessage = "Requests larger than 65536 bytes are not currently supported";

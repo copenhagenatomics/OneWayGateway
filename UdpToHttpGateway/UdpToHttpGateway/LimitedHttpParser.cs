@@ -2,6 +2,14 @@
 using System.Text;
 
 namespace UdpToHttpGateway;
+
+/// <remarks>
+/// This parser has mostly been built for use with the also limited writer of the gateway client.
+/// 
+/// It should do fine with http 1.1 messages in general, but you should carefully test when using an alternate client.
+/// 
+/// One known limitation is that it deals poorly with some cookie headers, which we are not expecting to be used given the one way nature of the gateway.
+/// </remarks>
 static class LimitedHttpParser
 {
     static readonly Encoding UTF8 = Encoding.UTF8;//important: the parsing assumes UTF8 for lookups of the below sequences, so care must be taken if changing this.
