@@ -1,0 +1,16 @@
+{
+  "profiles": {
+    "UdpToHttpGateway": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      },
+      "dotnetRunMessages": true
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker",
+      "DockerfileRunArguments": "-p 4280:4280/udp"
+    }
+  },
+  "$schema": "https://json.schemastore.org/launchsettings.json"
+}
