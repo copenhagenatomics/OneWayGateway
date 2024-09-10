@@ -19,6 +19,6 @@
 	  <FrameworkReference Include="Microsoft.AspNetCore.App" />	  
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\UdpToHttpGateway.Messages\UdpToHttpGateway.Client.csproj" />
+    <ProjectReference Include="..\UdpToHttpGateway.Client\UdpToHttpGateway.Client.csproj" />
   </ItemGroup>
 </Project>
