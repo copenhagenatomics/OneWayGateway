@@ -1,0 +1,10 @@
+﻿[Unit]
+Description=Udp to Http Gateway
+
+[Service]
+Type=notify
+WorkingDirectory=/usr/local/sbin/udptohttpgateway
+ExecStart=/usr/local/sbin/udptohttpgateway/UdpToHttpGateway
+
+[Install]
+WantedBy=multi-user.target
