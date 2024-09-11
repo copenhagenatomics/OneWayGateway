@@ -63,7 +63,7 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       - name: Test
-        working-directory: "./UdpToHttpGateway"
+        working-directory: "./UdpToHttpGateway/UdpToHttpGateway.Tests"
         run: |
             docker run --rm ${{ env.TEST_TAG }} -d -p 4280:4280/udp&
             dotnet test -c Release --verbosity normal --blame --blame-hang --blame-hang-timeout 10min
