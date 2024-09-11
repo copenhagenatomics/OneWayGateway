@@ -27,7 +27,7 @@ public class RequestsTest
     {
         IPAddress[] addresses = await Dns.GetHostAddressesAsync(string.Empty, AddressFamily.InterNetwork).ConfigureAwait(false);
         testIp = addresses.First(a => a.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a));
-        context?.WriteLine($"detected addresses: {string.Join(',', addresses.Select(a => a.ToString()))}");
+        throw new NotSupportedException($"detected addresses: {string.Join(',', addresses.Select(a => a.ToString()))}. test ip: {testIp}");
     }
 
     [TestMethod]
