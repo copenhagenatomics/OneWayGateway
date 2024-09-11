@@ -66,7 +66,7 @@ jobs:
             docker run --rm ${{ env.TEST_TAG }}
             dotnet test -c Release --verbosity normal --blame --blame-hang --blame-hang-timeout 10min
       - name: Build and push
-        id: push
+        id: buildandpush
         # if: ${{ startswith(github.ref, 'refs/tags')}} # only push tags? startswith(github.ref, 'refs/tags')
         uses: docker/build-push-action@5cd11c3a4ced054e52742c5fd54dca954e0edd85 #v6.7.0
         with:
@@ -81,7 +81,7 @@ jobs:
         uses: actions/attest-build-provenance@1c608d11d69870c2092266b3f9a6f3abbf17002c #v1.4.3
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
-          subject-digest: ${{ steps.push.outputs.digest }}
+          subject-digest: ${{ steps.buildandpush.outputs.digest }}
           push-to-registry: true
       - name: Inspect image
         run: |
