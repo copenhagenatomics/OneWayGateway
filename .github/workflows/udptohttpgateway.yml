@@ -61,7 +61,7 @@ jobs:
       - name: Setup .NET (for the test)
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.0-preview.6.24327.7'
+          dotnet-version: '8.0.x'
       - name: Test
         run: |
             docker run --rm ${{ env.TEST_TAG }}
