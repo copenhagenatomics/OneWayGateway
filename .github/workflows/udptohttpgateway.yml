@@ -51,7 +51,7 @@ jobs:
         id: push
         uses: docker/build-push-action@5cd11c3a4ced054e52742c5fd54dca954e0edd85 #v6.7.0
         with:
-          context: "./UdpToHttpGateway"
+          context: "./UdpToHttpGateway/UdpToHttpGateway"
           load: true
           tags: ${{ env.TEST_TAG }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -71,7 +71,7 @@ jobs:
         uses: docker/build-push-action@5cd11c3a4ced054e52742c5fd54dca954e0edd85 #v6.7.0
         with:
           platforms: linux/amd64,linux/arm64
-          context: "./UdpToHttpGateway"
+          context: "./UdpToHttpGateway/UdpToHttpGateway"
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
