@@ -11,6 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.dockerignore = .dockerignore
 		.editorconfig = .editorconfig
+		.github\workflows\udptohttpgateway.yml = .github\workflows\udptohttpgateway.yml
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UdpToHttpGateway.Tests", "UdpToHttpGateway.Tests\UdpToHttpGateway.Tests.csproj", "{17FCA1E9-1818-4DDF-8913-824D0C2E8221}"

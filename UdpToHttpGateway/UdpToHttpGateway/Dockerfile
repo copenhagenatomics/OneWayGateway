@@ -33,7 +33,7 @@ ARG BUILD_CONFIGURATION=Release
 RUN dotnet publish "./UdpToHttpGateway.csproj" -a $TARGETARCH -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=true
 
 # This stage is used as the base for the final stage when launching from VS to support debugging in regular mode (Default when not using the Debug configuration)
-FROM base as aotdebug
+FROM base AS aotdebug
 USER root
 # Install GDB to support native debugging
 RUN apt-get update \
