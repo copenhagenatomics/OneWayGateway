@@ -64,7 +64,7 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Test
         run: |
-            docker run --rm ${{ env.TEST_TAG }}
+            docker run --rm ${{ env.TEST_TAG }} -d -p 4280:4280/udp
             dotnet test -c Release --verbosity normal --blame --blame-hang --blame-hang-timeout 10min
       - name: Build and push
         id: buildandpush
