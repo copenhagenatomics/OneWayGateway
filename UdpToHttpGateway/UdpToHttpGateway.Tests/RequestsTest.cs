@@ -23,11 +23,11 @@ public class RequestsTest
     static IPAddress? testIp;
 
     [ClassInitialize]
-    public static async Task Initialize(TestContext _)
+    public static async Task Initialize(TestContext context)
     {
         IPAddress[] addresses = await Dns.GetHostAddressesAsync(string.Empty, AddressFamily.InterNetwork).ConfigureAwait(false);
         testIp = addresses.First(a => a.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a));
-        Console.WriteLine($"detected addresses: {string.Join(',', addresses.Select(a => a.ToString()))}");
+        context?.WriteLine($"detected addresses: {string.Join(',', addresses.Select(a => a.ToString()))}");
     }
 
     [TestMethod]
