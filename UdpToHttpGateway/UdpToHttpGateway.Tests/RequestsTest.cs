@@ -26,8 +26,8 @@ public class RequestsTest
     public static async Task Initialize(TestContext context)
     {
         IPAddress[] addresses = await Dns.GetHostAddressesAsync(string.Empty, AddressFamily.InterNetwork).ConfigureAwait(false);
-        testIp = addresses.First(a => a.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a));
-        throw new NotSupportedException($"detected addresses: {string.Join(',', addresses.Select(a => a.ToString()))}. test ip: {testIp}");
+        testIp = addresses.Skip(1).First(a => a.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a));
+        //throw new NotSupportedException($"detected addresses: {string.Join(',', addresses.Select(a => a.ToString()))}. test ip: {testIp}");
     }
 
     [TestMethod]
