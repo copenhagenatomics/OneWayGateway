@@ -19,7 +19,7 @@ public class RequestsTest
 {
     const int RequestTimeout = 1000;
     const int HttpPort = 9080;
-    static readonly IPEndPoint GatewayIp = IPEndPoint.Parse("127.0.0.1:4280");
+    static readonly IPEndPoint GatewayIp = IPEndPoint.Parse("172.17.0.3:4280");
     static string testIp;
 
     [ClassInitialize]
