@@ -20,13 +20,14 @@ public class RequestsTest
     const int RequestTimeout = 1000;
     const int HttpPort = 9080;
     static readonly IPEndPoint GatewayIp = IPEndPoint.Parse("127.0.0.1:4280");
-    static IPAddress? testIp;
+    static string testIp;
 
     [ClassInitialize]
     public static async Task Initialize(TestContext context)
     {
-        IPAddress[] addresses = await Dns.GetHostAddressesAsync(string.Empty, AddressFamily.InterNetwork).ConfigureAwait(false);
-        testIp = addresses.Skip(1).First(a => a.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a));
+        //IPAddress[] addresses = await Dns.GetHostAddressesAsync(string.Empty, AddressFamily.InterNetwork).ConfigureAwait(false);
+        //testIp = addresses.Skip(1).First(a => a.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a));
+        testIp = "localhost";
         //throw new NotSupportedException($"detected addresses: {string.Join(',', addresses.Select(a => a.ToString()))}. test ip: {testIp}");
     }
 
