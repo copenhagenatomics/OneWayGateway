@@ -48,7 +48,7 @@ sealed partial class UdpReceiver(IOptions<GatewayOptions> options, ILogger<UdpRe
                 {
                     HttpResponseMessage response = await client.SendAsync(message, stoppingToken).ConfigureAwait(false);
                     if (!response.IsSuccessStatusCode)
-                        LogSendingError(DateTimeOffset.UtcNow, response, message);
+                        LogSendingFailure(DateTimeOffset.UtcNow, response, message);
                     else
                         LogSending(DateTimeOffset.UtcNow, response, message);
                 }
@@ -84,7 +84,7 @@ sealed partial class UdpReceiver(IOptions<GatewayOptions> options, ILogger<UdpRe
     [LoggerMessage(Level = LogLevel.Debug, Message = "{time} - received response {response} for message {message}.")]
     partial void LogSending(DateTimeOffset time, HttpResponseMessage response, HttpRequestMessage message);
     [LoggerMessage(Level = LogLevel.Warning, Message = "{time} - unexpected error sending {message}.")]
-    partial void LogSendingError(DateTimeOffset time, HttpResponseMessage response, HttpRequestMessage message);
+    partial void LogSendingFailure(DateTimeOffset time, HttpResponseMessage response, HttpRequestMessage message);
     [LoggerMessage(Level = LogLevel.Warning, Message = "{time} - received response {response} for message {message}.")]
     partial void LogSendingError(DateTimeOffset time, HttpRequestMessage? message, Exception ex);
     [LoggerMessage(Level = LogLevel.Warning, Message = "{time} - unexpected parsing error sending {message}.")]
