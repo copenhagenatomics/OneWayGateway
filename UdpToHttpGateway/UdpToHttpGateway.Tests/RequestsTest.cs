@@ -209,7 +209,7 @@ public class RequestsTest
         writer.Write(request.Method);
         writer.Write(SPACE + request.GetDisplayUrl());
         writer.Write(SPACE + request.Protocol);
-        writer.Write("\r\n");
+        writer.Write("\n");
     }
 
     static void WriteHeaders(HttpRequest request, StringWriter writer)
@@ -217,10 +217,10 @@ public class RequestsTest
         foreach (KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues> kvp in request.Headers)
         {
             writer.Write(string.Format("{0}: {1}", kvp.Key, kvp.Value));
-            writer.Write("\r\n");
+            writer.Write("\n");
         }
 
-        writer.Write("\r\n");
+        writer.Write("\n");
     }
 }
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
