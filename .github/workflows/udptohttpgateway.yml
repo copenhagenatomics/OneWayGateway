@@ -65,8 +65,8 @@ jobs:
       - name: Test
         working-directory: "./UdpToHttpGateway/UdpToHttpGateway.Tests"
         run: |
-            # docker run --rm ${{ env.TEST_TAG }} -p 4280:4280/udp&
-            docker run --rm ${{ env.TEST_TAG }} --network "host"&
+            docker run --rm ${{ env.TEST_TAG }} -p 4280:4280/udp # --add-host=host.docker.internal:host-gateway&
+            #docker run --rm ${{ env.TEST_TAG }} --network "host"&
             #TODO: we might want a pause before moving forward below ... also run the app with debug conf to get more info
             dotnet test -c Release --blame --blame-hang --blame-hang-timeout 10min
       - name: Build and push

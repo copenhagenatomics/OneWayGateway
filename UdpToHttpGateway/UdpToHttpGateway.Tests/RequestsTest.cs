@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using System.Net;
 using System.Net.Http.Json;
-using System.Net.Sockets;
 using System.Text;
 using System.Threading.Channels;
 using UdpToHttpGateway.Client;
@@ -19,30 +18,21 @@ public class RequestsTest
 {
     const int RequestTimeout = 1000;
     const int HttpPort = 9080;
-    static readonly IPEndPoint GatewayIp = IPEndPoint.Parse("172.17.0.3:4280");
-    static string testIp;
-
-    [ClassInitialize]
-    public static async Task Initialize(TestContext context)
-    {
-        //IPAddress[] addresses = await Dns.GetHostAddressesAsync(string.Empty, AddressFamily.InterNetwork).ConfigureAwait(false);
-        //testIp = addresses.Skip(1).First(a => a.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a));
-        testIp = "localhost";
-        //throw new NotSupportedException($"detected addresses: {string.Join(',', addresses.Select(a => a.ToString()))}. test ip: {testIp}");
-    }
+    const string TestAddress = "host.docker.internal";
+    static readonly IPEndPoint GatewayIp = IPEndPoint.Parse("127.0.0.1:4280");
 
     [TestMethod]
     public Task TestRootGetRequest() => TestRequest(HttpMethod.Get, "/", default(byte[]?), $"""
- GET http://{testIp}:9080/ HTTP/1.1
- Host: 172.19.253.73:9080
+ GET http://{TestAddress}:{HttpPort}/ HTTP/1.1
+ Host: {TestAddress}:{HttpPort}
 
 
  """);
 
     [TestMethod]
     public Task TestRootPostRequest() => TestRequest(HttpMethod.Post, "/", [1, 2, 3, 4, 5], $"""
- POST http://{testIp}:9080/ HTTP/1.1
- Host: 172.19.253.73:9080
+ POST http://{TestAddress}:{HttpPort}/ HTTP/1.1
+ Host: {TestAddress}:{HttpPort}
  Content-Length: 5
 
 
@@ -50,8 +40,8 @@ public class RequestsTest
 
     [TestMethod]
     public Task Test65kRequest() => TestRequest(HttpMethod.Post, "/", Enumerable.Repeat((byte)9, 65000).ToArray(), $"""
- POST http://{testIp}:9080/ HTTP/1.1
- Host: 172.19.253.73:9080
+ POST http://{TestAddress}:{HttpPort}/ HTTP/1.1
+ Host: {TestAddress}:{HttpPort}
  Content-Length: 65000
 
 
@@ -59,8 +49,8 @@ public class RequestsTest
 
     [TestMethod]
     public Task TestJsonRequest() => TestRequest(HttpMethod.Post, "/", () => JsonContent.Create(new { MyValues = "abc" }), $"""
- POST http://{testIp}:9080/ HTTP/1.1
- Host: 172.19.253.73:9080
+ POST http://{TestAddress}:{HttpPort}/ HTTP/1.1
+ Host: {TestAddress}:{HttpPort}
  Content-Type: application/json; charset=utf-8
  Content-Length: 18
 
@@ -92,8 +82,8 @@ public class RequestsTest
     static (string expectedHeader, List<byte[]>) GetRequestDataToSend(int count)
     {
         string expectedHeader = $"""
- POST http://{testIp}:9080/ HTTP/1.1
- Host: 172.19.253.73:9080
+ POST http://{TestAddress}:{HttpPort}/ HTTP/1.1
+ Host: {TestAddress}:{HttpPort}
  Content-Length: 10
 
 
@@ -168,7 +158,7 @@ public class RequestsTest
     }
 
     static HttpRequestMessage NewRequest(HttpMethod method, string relativeUri, Func<HttpContent?> getContent) =>
-        new(method, new Uri(new Uri($"http://{testIp}:{HttpPort}"), relativeUri)) { Content = getContent() };
+        new(method, new Uri(new Uri($"http://{TestAddress}:{HttpPort}"), relativeUri)) { Content = getContent() };
     static async Task AssertFakeServerReceivedExpectedRequest(byte[] expectedContent, string expectedHeader, Channel<(string, byte[])> received)
     {
         try

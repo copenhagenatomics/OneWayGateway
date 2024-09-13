@@ -9,7 +9,7 @@
     },
     "Container (Dockerfile)": {
       "commandName": "Docker",
-      "DockerfileRunArguments": "-p 4280:4280/udp"
+      "DockerfileRunArguments": "-p 4280:4280/udp --add-host=host.docker.internal:host-gateway"
     }
   },
   "$schema": "https://json.schemastore.org/launchsettings.json"
