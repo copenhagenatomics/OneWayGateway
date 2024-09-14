@@ -1,3 +1,5 @@
+ARG TEST_BASE_IMAGE=udptohttpgateway:publish
+
 FROM udptohttpgateway:publish AS test
 ARG TARGETARCH
 WORKDIR /src

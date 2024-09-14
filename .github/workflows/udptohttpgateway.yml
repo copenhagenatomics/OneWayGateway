@@ -13,7 +13,6 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   SOURCE_DATE_EPOCH: 0
-  TEST_TAG: udptohttpgateway:publish
 
 jobs:
   docker:
@@ -24,6 +23,12 @@ jobs:
     # https://docs.docker.com/build/ci/github-actions/cache/#github-cache
     # https://docs.docker.com/build/ci/github-actions/reproducible-builds/
     runs-on: ubuntu-latest
+
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
 
     permissions:
       contents: read
@@ -52,9 +57,9 @@ jobs:
         with:
           context: "./UdpToHttpGateway"
           file: "./UdpToHttpGateway/UdpToHttpGateway/Dockerfile"
-          load: true
+          push: true
           target: publish
-          tags: ${{ env.TEST_TAG }}
+          tags: localhost:5000/udptohttpgateway:publish
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Run test
@@ -64,6 +69,8 @@ jobs:
           file: "./UdpToHttpGateway/UdpToHttpGateway.Tests/Dockerfile"
           cache-from: type=gha
           no-cache: true
+          build-args:
+            BASE_IMAGE=localhost:5000/udptohttpgateway:publish
       - name: Build and push
         id: buildandpush
         # if: ${{ startswith(github.ref, 'refs/tags')}} # only push tags? startswith(github.ref, 'refs/tags')
