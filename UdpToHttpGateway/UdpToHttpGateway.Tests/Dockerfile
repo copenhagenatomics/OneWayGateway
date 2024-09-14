@@ -1,6 +1,6 @@
 ARG TEST_BASE_IMAGE=udptohttpgateway:publish
 
-FROM udptohttpgateway:publish AS test
+FROM ${TEST_BASE_IMAGE} AS test
 ARG TARGETARCH
 WORKDIR /src
 #copying the rest of files to get the tests and dependencies

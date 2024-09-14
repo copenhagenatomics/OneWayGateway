@@ -58,7 +58,6 @@ jobs:
         with:
           context: "./UdpToHttpGateway"
           file: "./UdpToHttpGateway/UdpToHttpGateway.Tests/Dockerfile"
-          tags: localhost:5000/udptohttpgateway:test
           cache-from: type=gha
           no-cache: true
           build-args:
