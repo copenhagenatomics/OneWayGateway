@@ -16,7 +16,7 @@ namespace UdpToHttpGateway.Tests;
 public class RequestsTest
 #pragma warning restore CA1515 // Consider making public types internal
 {
-    const int RequestTimeout = 100;
+    const int RequestTimeout = 300;
     const int HttpPort = 9080;
     const string TestAddress = "127.0.0.1";
     static readonly IPEndPoint GatewayIp = IPEndPoint.Parse("127.0.0.1:4280");

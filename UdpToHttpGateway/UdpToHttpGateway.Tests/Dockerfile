@@ -1,9 +1,7 @@
-ARG TEST_BASE_IMAGE=udptohttpgateway:publish
+ARG TEST_BASE_IMAGE=udptohttpgateway:testbase
 
 FROM ${TEST_BASE_IMAGE} AS test
+ARG BUILD_CONFIGURATION=Release
 ARG TARGETARCH
-WORKDIR /src
-#copying the rest of files to get the tests and dependencies
-COPY . . 
-RUN cd /app/publish && (./UdpToHttpGateway&) && cd /src/UdpToHttpGateway.Tests && \
-    dotnet test -a $TARGETARCH -c $BUILD_CONFIGURATION --blame --blame-hang --blame-hang-timeout 10min
+RUN { cd /app/publish && ./UdpToHttpGateway& } && \
+    dotnet test -a $TARGETARCH -c $BUILD_CONFIGURATION --no-build --no-restore --blame --blame-hang --blame-hang-timeout 10min

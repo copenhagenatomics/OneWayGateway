@@ -37,6 +37,14 @@ FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
 RUN dotnet publish "./UdpToHttpGateway.csproj" -a $TARGETARCH -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=true
 
+FROM publish AS testbase
+ARG BUILD_CONFIGURATION=Release
+WORKDIR /src
+#copying the rest of files to get the tests and dependencies
+COPY . . 
+WORKDIR ./UdpToHttpGateway.Tests
+RUN dotnet build ./UdpToHttpGateway.Tests.csproj -c $BUILD_CONFIGURATION -a $TARGETARCH
+
 # This stage is used as the base for the final stage when launching from VS to support debugging in regular mode (Default when not using the Debug configuration)
 FROM base AS aotdebug
 USER root
