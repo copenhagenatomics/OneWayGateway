@@ -92,6 +92,3 @@ jobs:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
           subject-digest: ${{ steps.buildandpush.outputs.digest }}
           push-to-registry: true
-      - name: Inspect image
-        run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:${{ steps.meta.outputs.version }}
