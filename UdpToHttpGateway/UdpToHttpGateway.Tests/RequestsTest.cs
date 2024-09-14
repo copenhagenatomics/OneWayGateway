@@ -16,16 +16,16 @@ namespace UdpToHttpGateway.Tests;
 public class RequestsTest
 #pragma warning restore CA1515 // Consider making public types internal
 {
-    const int RequestTimeout = 1000;
+    const int RequestTimeout = 100;
     const int HttpPort = 9080;
-    const string TestAddress = "host.docker.internal";
-    static readonly IPEndPoint GatewayIp = IPEndPoint.Parse("172.17.0.3:4280");
+    const string TestAddress = "127.0.0.1";
+    static readonly IPEndPoint GatewayIp = IPEndPoint.Parse("127.0.0.1:4280");
 
     [TestMethod]
     public Task TestRootGetRequest() => TestRequest(HttpMethod.Get, "/", default(byte[]?), $"""
  GET http://{TestAddress}:{HttpPort}/ HTTP/1.1
  Host: {TestAddress}:{HttpPort}
-
+ 
 
  """);
 

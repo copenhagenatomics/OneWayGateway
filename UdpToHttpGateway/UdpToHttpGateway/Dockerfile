@@ -10,7 +10,6 @@ FROM mcr.microsoft.com/dotnet/runtime:9.0-preview-bookworm-slim AS base
 USER app
 WORKDIR /app
 
-
 # This stage is used to build the service project
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0-preview-bookworm-slim-amd64 AS build
 ARG TARGETARCH
@@ -21,9 +20,15 @@ RUN dpkg --add-architecture arm64 \
     clang zlib1g-dev zlib1g-dev:arm64 gcc-aarch64-linux-gnu llvm
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["UdpToHttpGateway/UdpToHttpGateway.csproj", "UdpToHttpGateway/"]
-RUN dotnet restore "./UdpToHttpGateway/UdpToHttpGateway.csproj" -a $TARGETARCH
-COPY . .
+#restoring first means the last restore is reused as long as the csproj files don't change
+COPY *.sln ./
+COPY ./UdpToHttpGateway/*.csproj ./UdpToHttpGateway/
+COPY ./UdpToHttpGateway.Tests/*.csproj ./UdpToHttpGateway.Tests/
+COPY ./UdpToHttpGateway.Client/*.csproj ./UdpToHttpGateway.Client/
+RUN dotnet restore
+#we only copy the project folders so changes to tests don't trigger a rebuild
+COPY .editorconfig .
+COPY UdpToHttpGateway UdpToHttpGateway
 WORKDIR "/src/UdpToHttpGateway"
 RUN dotnet build "./UdpToHttpGateway.csproj" -c $BUILD_CONFIGURATION -a $TARGETARCH -o /app/build
 
