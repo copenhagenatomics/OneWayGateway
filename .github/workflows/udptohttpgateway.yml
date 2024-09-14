@@ -30,11 +30,11 @@ jobs:
         ports:
           - 5000:5000
 
-    # permissions:
-    #   contents: read
-    #   packages: write
-    #   attestations: write
-    #   id-token: write
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
 
     steps:
       - name: Checkout repository
