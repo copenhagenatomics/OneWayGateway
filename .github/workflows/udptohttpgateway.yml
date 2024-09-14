@@ -62,7 +62,7 @@ jobs:
         with:
           context: "./UdpToHttpGateway"
           file: "./UdpToHttpGateway/UdpToHttpGateway.Tests/Dockerfile"
-          # cache-from: type=gha
+          cache-from: type=gha
           no-cache: true
       - name: Build and push
         id: buildandpush
