@@ -59,7 +59,7 @@ jobs:
           file: "./UdpToHttpGateway/UdpToHttpGateway/Dockerfile"
           push: true
           target: publish
-          tags: localregistry:5000/udptohttpgateway/app:publish
+          tags: localhost:5000/udptohttpgateway/app:publish
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Run test
@@ -70,7 +70,7 @@ jobs:
           cache-from: type=gha
           no-cache: true
           build-args:
-            BASE_IMAGE=localregistry:5000/udptohttpgateway/app:publish
+            BASE_IMAGE=localhost:5000/udptohttpgateway/app:publish
       - name: Build and push
         id: buildandpush
         # if: ${{ startswith(github.ref, 'refs/tags')}} # only push tags? startswith(github.ref, 'refs/tags')
