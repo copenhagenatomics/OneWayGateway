@@ -58,7 +58,7 @@ jobs:
         with:
           context: "./UdpToHttpGateway"
           file: "./UdpToHttpGateway/UdpToHttpGateway.Tests/Dockerfile"
-          outputs: "--output=type=docker"
+          outputs: "--output=type=cache-only"
           cache-from: type=gha
           no-cache: true
           build-args:
