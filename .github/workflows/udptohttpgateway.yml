@@ -13,7 +13,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   SOURCE_DATE_EPOCH: 0
-  TEST_TAG: local/app:test
+  TEST_TAG: udptohttpgateway:publish
 
 jobs:
   docker:
@@ -62,7 +62,6 @@ jobs:
         with:
           context: "./UdpToHttpGateway"
           file: "./UdpToHttpGateway/UdpToHttpGateway.Tests/Dockerfile"
-          target: publish
           # cache-from: type=gha
           no-cache: true
       - name: Build and push
