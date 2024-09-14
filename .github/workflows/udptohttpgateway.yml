@@ -54,7 +54,7 @@ jobs:
           file: "./UdpToHttpGateway/UdpToHttpGateway/Dockerfile"
           load: true
           target: publish
-          tags: ${{ TEST_TAG }}
+          tags: ${{ env.TEST_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Run test
