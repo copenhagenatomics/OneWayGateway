@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      localregistry:
+      registry:
         image: registry:2
         ports:
           - 5000:5000
@@ -41,6 +41,8 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db #3.6.1
+        with:
+          driver-opts: network=host
       - name: Initial build for testing
         uses: docker/build-push-action@5cd11c3a4ced054e52742c5fd54dca954e0edd85 #v6.7.0
         with:
@@ -48,9 +50,18 @@ jobs:
           file: "./UdpToHttpGateway/UdpToHttpGateway/Dockerfile"
           push: true
           target: publish
-          tags: localhost:5000/udptohttpgateway/app:publish
+          tags: localhost:5000/udptohttpgateway/app:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Run test
+        uses: docker/build-push-action@5cd11c3a4ced054e52742c5fd54dca954e0edd85 #v6.7.0
+        with:
+          context: "./UdpToHttpGateway"
+          file: "./UdpToHttpGateway/UdpToHttpGateway.Tests/Dockerfile"
+          cache-from: type=gha
+          no-cache: true
+          build-args:
+            BASE_IMAGE=localhost:5000/udptohttpgateway/app:latest
       - name: Login to Container registry Hub
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 #v3.3.0
         with:
@@ -62,15 +73,6 @@ jobs:
         uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81 #v5.5.1
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-      - name: Run test
-        uses: docker/build-push-action@5cd11c3a4ced054e52742c5fd54dca954e0edd85 #v6.7.0
-        with:
-          context: "./UdpToHttpGateway"
-          file: "./UdpToHttpGateway/UdpToHttpGateway.Tests/Dockerfile"
-          cache-from: type=gha
-          no-cache: true
-          build-args:
-            BASE_IMAGE=localhost:5000/udptohttpgateway/app:publish
       - name: Build and push
         id: buildandpush
         # if: ${{ startswith(github.ref, 'refs/tags')}} # only push tags? startswith(github.ref, 'refs/tags')
