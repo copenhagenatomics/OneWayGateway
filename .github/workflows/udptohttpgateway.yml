@@ -22,7 +22,7 @@ jobs:
     # https://docs.docker.com/build/ci/github-actions/export-docker/
     # https://docs.docker.com/build/ci/github-actions/cache/#github-cache
     # https://docs.docker.com/build/ci/github-actions/reproducible-builds/
-    runs-on: ubuntu-latest
+    runs-on: linux-arm64
 
     services:
       registry:
