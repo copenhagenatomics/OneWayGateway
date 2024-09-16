@@ -9,5 +9,5 @@ cp UdpToHttpGateway.dbg /usr/local/sbin/udptohttpgateway
 cp appsettings.json /usr/local/sbin/udptohttpgateway
 chmod +x /usr/local/sbin/udptohttpgateway/UdpToHttpGateway
 systemctl daemon-reload
-sudo systemctl start udptohttpgateway.service
-sudo systemctl enable udptohttpgateway.service
+systemctl start udptohttpgateway.service
+systemctl enable udptohttpgateway.service
