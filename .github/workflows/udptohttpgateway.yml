@@ -11,7 +11,7 @@ on:
         - main
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: udptohttpgateway
   SOURCE_DATE_EPOCH: 0
 
 jobs:
@@ -75,7 +75,6 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
       - name: Build and push
         id: buildandpush
-        # if: ${{ startswith(github.ref, 'refs/tags')}} # only push tags? startswith(github.ref, 'refs/tags')
         uses: docker/build-push-action@5cd11c3a4ced054e52742c5fd54dca954e0edd85 #v6.7.0
         with:
           platforms: linux/amd64,linux/arm64
@@ -92,3 +91,12 @@ jobs:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
           subject-digest: ${{ steps.buildandpush.outputs.digest }}
           push-to-registry: true
+      - name: Publish to Azure blob
+        run: |
+          mkdir -p arm
+          docker cp $(docker create ${image} --platform linux/arm64):/app/* arm
+          cd arm
+          zip -r udptohttpgateway.zip *
+          curl -f -X PUT -H "x-ms-version: 2020-04-08" -H "Content-Type: application/octet-stream" -H "x-ms-blob-type: BlockBlob" \
+            "${{ vars.BLOB_URL }}/udptohttpgateway-${{ steps.meta.outputs.version }}.zip${{secrets.BLOB_QUERYSTRING}}" \
+            --upload-file 'udptohttpgateway.zip'
