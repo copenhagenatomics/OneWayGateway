@@ -25,7 +25,7 @@ public class RequestsTest
     public Task TestRootGetRequest() => TestRequest(HttpMethod.Get, "/", default(byte[]?), $"""
  GET http://{TestAddress}:{HttpPort}/ HTTP/1.1
  Host: {TestAddress}:{HttpPort}
- .
+ 
 
  """);
 
