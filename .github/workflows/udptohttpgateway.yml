@@ -11,7 +11,7 @@ on:
         - main
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: udptohttpgateway
+  IMAGE_NAME: ${{ github.repository }}
   SOURCE_DATE_EPOCH: 0
 
 jobs:
