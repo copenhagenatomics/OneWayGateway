@@ -94,7 +94,7 @@ jobs:
       - name: Publish to Azure blob
         run: |
           mkdir -p arm
-          docker cp $(docker create ${image} --platform linux/arm64):/app/* arm
+          docker cp $(docker create ${{steps.meta.outputs.tags}} --platform linux/arm64):/app/* arm
           cd arm
           zip -r udptohttpgateway.zip *
           curl -f -X PUT -H "x-ms-version: 2020-04-08" -H "Content-Type: application/octet-stream" -H "x-ms-blob-type: BlockBlob" \
