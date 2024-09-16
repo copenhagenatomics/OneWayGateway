@@ -11,7 +11,7 @@ USER app
 WORKDIR /app
 
 # This stage is used to build the service project
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0-preview-bookworm-slim-amd64 AS build
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0-preview-bookworm-slim AS build
 ARG TARGETARCH
 # Install clang/zlib1g-dev dependencies for publishing to native
 RUN dpkg --add-architecture arm64 \
