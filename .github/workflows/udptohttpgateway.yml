@@ -12,7 +12,6 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  TEST_TAG: user/app:test
   SOURCE_DATE_EPOCH: 0
 
 jobs:
@@ -23,7 +22,13 @@ jobs:
     # https://docs.docker.com/build/ci/github-actions/export-docker/
     # https://docs.docker.com/build/ci/github-actions/cache/#github-cache
     # https://docs.docker.com/build/ci/github-actions/reproducible-builds/
-    runs-on: ubuntu-latest
+    runs-on: linux-arm64
+
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
 
     permissions:
       contents: read
@@ -35,7 +40,30 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v988b5a0280414f521da01fcc63a27aeeb4b104db #3.6.1
+        uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db #3.6.1
+        with:
+          driver-opts: network=host
+      - name: Initial build for testing
+        uses: docker/build-push-action@5cd11c3a4ced054e52742c5fd54dca954e0edd85 #v6.7.0
+        with:
+          platforms: linux/arm64
+          context: "./UdpToHttpGateway"
+          file: "./UdpToHttpGateway/UdpToHttpGateway/Dockerfile"
+          push: true
+          target: testbase
+          tags: localhost:5000/udptohttpgateway:testbase
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Run test
+        uses: docker/build-push-action@5cd11c3a4ced054e52742c5fd54dca954e0edd85 #v6.7.0
+        with:
+          platforms: linux/arm64
+          context: "./UdpToHttpGateway"
+          file: "./UdpToHttpGateway/UdpToHttpGateway.Tests/Dockerfile"
+          cache-from: type=gha
+          no-cache: true
+          build-args:
+            TEST_BASE_IMAGE=localhost:5000/udptohttpgateway:testbase
       - name: Login to Container registry Hub
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 #v3.3.0
         with:
@@ -47,31 +75,13 @@ jobs:
         uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81 #v5.5.1
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-      - name: Build and export to docker
-        id: push
-        uses: docker/build-push-action@5cd11c3a4ced054e52742c5fd54dca954e0edd85 #v6.7.0
-        with:
-          context: "./UdpToHttpGateway"
-          load: true
-          tags: ${{ env.TEST_TAG }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-      - name: Setup .NET (for the test)
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.0.0-preview.6.24327.7'
-      - name: Test
-        run: |
-            docker run --rm ${{ env.TEST_TAG }}
-            dotnet test -c Release --verbosity normal --blame --blame-hang --blame-hang-timeout 10min
       - name: Build and push
-        id: push
-        if: ${{ startswith(github.ref, 'refs/tags')}} # only push tags? startswith(github.ref, 'refs/tags')
+        id: buildandpush
         uses: docker/build-push-action@5cd11c3a4ced054e52742c5fd54dca954e0edd85 #v6.7.0
         with:
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/arm64
           context: "./UdpToHttpGateway"
+          file: "./UdpToHttpGateway/UdpToHttpGateway/Dockerfile"
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -81,8 +91,14 @@ jobs:
         uses: actions/attest-build-provenance@1c608d11d69870c2092266b3f9a6f3abbf17002c #v1.4.3
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
-          subject-digest: ${{ steps.push.outputs.digest }}
+          subject-digest: ${{ steps.buildandpush.outputs.digest }}
           push-to-registry: true
-      - name: Inspect image
+      - name: Publish to Azure blob
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}
+          mkdir -p arm
+          docker cp $(docker create ${{steps.meta.outputs.tags}} --platform=linux/arm64):/app arm
+          cd arm/app
+          zip -r udptohttpgateway.zip *
+          curl -f -X PUT -H "x-ms-version: 2020-04-08" -H "Content-Type: application/octet-stream" -H "x-ms-blob-type: BlockBlob" \
+            "${{ vars.BLOB_URL }}/udptohttpgateway-${{ steps.meta.outputs.version }}.zip${{secrets.BLOB_QUERYSTRING}}" \
+            --upload-file 'udptohttpgateway.zip'

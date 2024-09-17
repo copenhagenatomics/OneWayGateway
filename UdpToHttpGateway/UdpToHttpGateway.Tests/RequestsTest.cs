@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using System.Net;
 using System.Net.Http.Json;
-using System.Net.Sockets;
 using System.Text;
 using System.Threading.Channels;
 using UdpToHttpGateway.Client;
@@ -17,30 +16,23 @@ namespace UdpToHttpGateway.Tests;
 public class RequestsTest
 #pragma warning restore CA1515 // Consider making public types internal
 {
-    const int RequestTimeout = 1000;
+    const int RequestTimeout = 300;
     const int HttpPort = 9080;
+    const string TestAddress = "127.0.0.1";
     static readonly IPEndPoint GatewayIp = IPEndPoint.Parse("127.0.0.1:4280");
-    static IPAddress? testIp;
-
-    [ClassInitialize]
-    public static async Task Initialize(TestContext _)
-    {
-        IPAddress[] addresses = await Dns.GetHostAddressesAsync(string.Empty, AddressFamily.InterNetwork).ConfigureAwait(false);
-        testIp = addresses.First(a => a.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a));
-    }
 
     [TestMethod]
     public Task TestRootGetRequest() => TestRequest(HttpMethod.Get, "/", default(byte[]?), $"""
- GET http://{testIp}:9080/ HTTP/1.1
- Host: 172.19.253.73:9080
-
+ GET http://{TestAddress}:{HttpPort}/ HTTP/1.1
+ Host: {TestAddress}:{HttpPort}
+ 
 
  """);
 
     [TestMethod]
     public Task TestRootPostRequest() => TestRequest(HttpMethod.Post, "/", [1, 2, 3, 4, 5], $"""
- POST http://{testIp}:9080/ HTTP/1.1
- Host: 172.19.253.73:9080
+ POST http://{TestAddress}:{HttpPort}/ HTTP/1.1
+ Host: {TestAddress}:{HttpPort}
  Content-Length: 5
 
 
@@ -48,8 +40,8 @@ public class RequestsTest
 
     [TestMethod]
     public Task Test65kRequest() => TestRequest(HttpMethod.Post, "/", Enumerable.Repeat((byte)9, 65000).ToArray(), $"""
- POST http://{testIp}:9080/ HTTP/1.1
- Host: 172.19.253.73:9080
+ POST http://{TestAddress}:{HttpPort}/ HTTP/1.1
+ Host: {TestAddress}:{HttpPort}
  Content-Length: 65000
 
 
@@ -57,8 +49,8 @@ public class RequestsTest
 
     [TestMethod]
     public Task TestJsonRequest() => TestRequest(HttpMethod.Post, "/", () => JsonContent.Create(new { MyValues = "abc" }), $"""
- POST http://{testIp}:9080/ HTTP/1.1
- Host: 172.19.253.73:9080
+ POST http://{TestAddress}:{HttpPort}/ HTTP/1.1
+ Host: {TestAddress}:{HttpPort}
  Content-Type: application/json; charset=utf-8
  Content-Length: 18
 
@@ -90,8 +82,8 @@ public class RequestsTest
     static (string expectedHeader, List<byte[]>) GetRequestDataToSend(int count)
     {
         string expectedHeader = $"""
- POST http://{testIp}:9080/ HTTP/1.1
- Host: 172.19.253.73:9080
+ POST http://{TestAddress}:{HttpPort}/ HTTP/1.1
+ Host: {TestAddress}:{HttpPort}
  Content-Length: 10
 
 
@@ -166,7 +158,7 @@ public class RequestsTest
     }
 
     static HttpRequestMessage NewRequest(HttpMethod method, string relativeUri, Func<HttpContent?> getContent) =>
-        new(method, new Uri(new Uri($"http://{testIp}:{HttpPort}"), relativeUri)) { Content = getContent() };
+        new(method, new Uri(new Uri($"http://{TestAddress}:{HttpPort}"), relativeUri)) { Content = getContent() };
     static async Task AssertFakeServerReceivedExpectedRequest(byte[] expectedContent, string expectedHeader, Channel<(string, byte[])> received)
     {
         try
@@ -217,7 +209,7 @@ public class RequestsTest
         writer.Write(request.Method);
         writer.Write(SPACE + request.GetDisplayUrl());
         writer.Write(SPACE + request.Protocol);
-        writer.Write("\r\n");
+        writer.Write("\n");
     }
 
     static void WriteHeaders(HttpRequest request, StringWriter writer)
@@ -225,10 +217,10 @@ public class RequestsTest
         foreach (KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues> kvp in request.Headers)
         {
             writer.Write(string.Format("{0}: {1}", kvp.Key, kvp.Value));
-            writer.Write("\r\n");
+            writer.Write("\n");
         }
 
-        writer.Write("\r\n");
+        writer.Write("\n");
     }
 }
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
