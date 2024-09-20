@@ -11,7 +11,7 @@ USER app
 WORKDIR /app
 
 # This stage is used to build the service project
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0-preview-bookworm-slim AS build
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0-preview-bookworm-slim AS restore
 ARG TARGETARCH
 # Install clang/zlib1g-dev dependencies for publishing to native
 RUN dpkg --add-architecture arm64 \
@@ -26,16 +26,27 @@ COPY ./UdpToHttpGateway/*.csproj ./UdpToHttpGateway/
 COPY ./UdpToHttpGateway.Tests/*.csproj ./UdpToHttpGateway.Tests/
 COPY ./UdpToHttpGateway.Client/*.csproj ./UdpToHttpGateway.Client/
 RUN dotnet restore
-#we only copy the project folders so changes to tests don't trigger a rebuild
 COPY .editorconfig .
+
+FROM restore AS build
+#we only copy the gateway, so changes to other projects don't trigger a rebuild
 COPY UdpToHttpGateway UdpToHttpGateway
 WORKDIR "/src/UdpToHttpGateway"
 RUN dotnet build "./UdpToHttpGateway.csproj" -c $BUILD_CONFIGURATION -a $TARGETARCH -o /app/build
 
-# This stage is used to publish the service project to be copied to the final stage
+# This stage is used to publish the gateway project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
 RUN dotnet publish "./UdpToHttpGateway.csproj" -a $TARGETARCH -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=true
+
+FROM restore AS publishclient
+ARG BUILD_CONFIGURATION=Release
+ARG VERSION
+COPY UdpToHttpGateway.Client UdpToHttpGateway.Client
+WORKDIR "/src/UdpToHttpGateway.Client"
+RUN dotnet pack UdpToHttpGateway.Client -c $BUILD_CONFIGURATION --no-restore -o /app/packages/
+RUN --mount=type=secret,id=NUGET_KEY,env=NUGET_KEY \
+    dotnet nuget push /app/packages/*.nupkg -s https://api.nuget.org/v3/index.json -k $NUGET_KEY
 
 FROM publish AS testbase
 ARG BUILD_CONFIGURATION=Release

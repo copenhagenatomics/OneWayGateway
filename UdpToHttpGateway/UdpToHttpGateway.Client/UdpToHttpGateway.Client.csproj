@@ -1,6 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <Company>Copenhagen Atomics</Company>
+    <Authors>Copenhagen Atomics</Authors>
+    <Description>Allows to send http requests via a one way gateway.</Description>
+    <PackageLicenseFile>MIT license.txt</PackageLicenseFile>
+    <PackageProjectUrl>https://github.com/copenhagenatomics/OneWayGateway</PackageProjectUrl>
+    <PackageTags>Udp, Http, Data Diode</PackageTags>
+    <RepositoryUrl>https://github.com/copenhagenatomics/OneWayGateway</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <InvariantGlobalization>true</InvariantGlobalization>
@@ -10,6 +18,10 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="MIT license.txt">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
     <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="8.0.8" />
   </ItemGroup>
 </Project>
