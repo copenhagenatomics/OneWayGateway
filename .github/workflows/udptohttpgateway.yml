@@ -99,7 +99,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            VERSION: ${{ env.NUGET_VERSION }}
+            VERSION=${{ env.NUGET_VERSION }}
           secrets: |
             NUGET_KEY=${{ secrets.NUGET_API_KEY }}
           target: publishclient
