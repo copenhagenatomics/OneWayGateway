@@ -45,7 +45,7 @@ ARG VERSION
 COPY UdpToHttpGateway.Client UdpToHttpGateway.Client
 WORKDIR "/src/UdpToHttpGateway.Client"
 RUN dotnet pack UdpToHttpGateway.Client.csproj -c $BUILD_CONFIGURATION --no-restore -o /app/packages/
-RUN --mount=type=secret,id=NUGET_KEY,env=NUGET_KEY \
+RUN --mount=type=secret,id=NUGET_KEY,env=NUGET_KEY,required=true \
     dotnet nuget push /app/packages/*.nupkg -s https://api.nuget.org/v3/index.json -k $NUGET_KEY
 
 FROM publish AS testbase
