@@ -101,7 +101,7 @@ jobs:
           build-args: |
             VERSION: ${{ env.NUGET_VERSION }}
           secrets: |
-            NUGET_KEY: ${{ secrets.NUGET_API_KEY }}
+            NUGET_KEY=${{ secrets.NUGET_API_KEY }}
           target: publishclient
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@1c608d11d69870c2092266b3f9a6f3abbf17002c #v1.4.3
