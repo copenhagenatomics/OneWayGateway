@@ -16,7 +16,9 @@ sealed partial class UdpReceiver(IOptions<GatewayOptions> options, ILogger<UdpRe
         Memory<byte> bufferMem = buffer;
         SocketAddress receivedAddress = new(socket.AddressFamily);
         long totalReceivedBytes = 0, totalReceivedPackets = 0;
-        using var client = new HttpClient();
+        //PooledConnectionLifetime allows the system to notice dns changes as recommended at https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/http/httpclient-guidelines#recommended-use
+        using var handler = new SocketsHttpHandler() { PooledConnectionLifetime = TimeSpan.FromMinutes(15) };
+        using var client = new HttpClient(handler);
 
         try
         {
@@ -53,7 +55,9 @@ sealed partial class UdpReceiver(IOptions<GatewayOptions> options, ILogger<UdpRe
                         LogSending(DateTimeOffset.UtcNow, response, message);
                 }
                 else
+                {
                     LogParsingError(DateTimeOffset.UtcNow, bytes);
+                }
             }
             finally
             {
