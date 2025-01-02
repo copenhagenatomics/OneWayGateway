@@ -1,5 +1,6 @@
-using System.Net.Sockets;
 using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using Microsoft.Extensions.Options;
 
 namespace UdpToHttpGateway;
@@ -10,7 +11,9 @@ sealed partial class UdpReceiver(IOptions<GatewayOptions> options, ILogger<UdpRe
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using Socket socket = await Bind(IPEndPoint.Parse(options.Value.EndPoint), stoppingToken).ConfigureAwait(false);
+        var endpoint = IPEndPoint.Parse(options.Value.EndPoint);
+        await WaitUntilNetworkInterfaceIsReady(endpoint.Address, stoppingToken).ConfigureAwait(false);
+        using Socket socket = await Bind(endpoint, stoppingToken).ConfigureAwait(false);
         const int MaxUDPSize = 0x10000; //same System.Net.Sockets.UdpClient uses, which makes the receiving buffer larger than the max for ipv4 udp packets
         byte[] buffer = GC.AllocateArray<byte>(length: MaxUDPSize, pinned: true);
         Memory<byte> bufferMem = buffer;
@@ -35,6 +38,28 @@ sealed partial class UdpReceiver(IOptions<GatewayOptions> options, ILogger<UdpRe
         finally
         {
             LogReceivedData(DateTimeOffset.Now, totalReceivedPackets, totalReceivedBytes);
+        }
+    }
+
+    async Task WaitUntilNetworkInterfaceIsReady(IPAddress address, CancellationToken stoppingToken)
+    {
+        var ready = false;
+        while (!ready && !stoppingToken.IsCancellationRequested)
+        {
+            foreach (var iFace in NetworkInterface.GetAllNetworkInterfaces().Where(i => i.OperationalStatus == OperationalStatus.Up))
+            {
+                foreach (var ifAddress in iFace.GetIPProperties().UnicastAddresses)
+                    if (ifAddress.Address.Equals(address))
+                    {
+                        ready = true;
+                        break;
+                    }
+            }
+            if (!ready)
+            {
+                LogNetworkInterfaceNotReady(DateTimeOffset.UtcNow);
+                await Task.Delay(2000, stoppingToken).ConfigureAwait(false);
+            }
         }
     }
 
@@ -99,4 +124,7 @@ sealed partial class UdpReceiver(IOptions<GatewayOptions> options, ILogger<UdpRe
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{time} - {packets} packets received with a total of {bytes} bytes.")]
     partial void LogReceivedData(DateTimeOffset time, long packets, long bytes);
+    
+    [LoggerMessage(Level = LogLevel.Information, Message = "{time} - network interface not ready, re-checking in 2s.")]
+    partial void LogNetworkInterfaceNotReady(DateTimeOffset time);
 }
