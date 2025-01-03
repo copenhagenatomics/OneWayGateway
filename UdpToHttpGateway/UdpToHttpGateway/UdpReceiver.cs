@@ -43,7 +43,7 @@ sealed partial class UdpReceiver(IOptions<GatewayOptions> options, ILogger<UdpRe
 
     async Task WaitUntilNetworkInterfaceIsReady(IPAddress address, CancellationToken stoppingToken)
     {
-        var ready = false;
+        var ready = IPAddress.IsLoopback(address);
         while (!ready && !stoppingToken.IsCancellationRequested)
         {
             foreach (var iFace in NetworkInterface.GetAllNetworkInterfaces().Where(i => i.OperationalStatus == OperationalStatus.Up))
