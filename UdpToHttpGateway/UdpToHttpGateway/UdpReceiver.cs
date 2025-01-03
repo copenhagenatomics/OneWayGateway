@@ -57,7 +57,7 @@ sealed partial class UdpReceiver(IOptions<GatewayOptions> options, ILogger<UdpRe
             }
             if (!ready)
             {
-                LogNetworkInterfaceNotReady(DateTimeOffset.UtcNow);
+                LogNetworkInterfaceNotReady(DateTimeOffset.UtcNow, address);
                 await Task.Delay(2000, stoppingToken).ConfigureAwait(false);
             }
         }
@@ -125,6 +125,6 @@ sealed partial class UdpReceiver(IOptions<GatewayOptions> options, ILogger<UdpRe
     [LoggerMessage(Level = LogLevel.Information, Message = "{time} - {packets} packets received with a total of {bytes} bytes.")]
     partial void LogReceivedData(DateTimeOffset time, long packets, long bytes);
     
-    [LoggerMessage(Level = LogLevel.Information, Message = "{time} - network interface not ready, re-checking in 2s.")]
-    partial void LogNetworkInterfaceNotReady(DateTimeOffset time);
+    [LoggerMessage(Level = LogLevel.Information, Message = "{time} - network interface not ready ({address}), re-checking in 2s.")]
+    partial void LogNetworkInterfaceNotReady(DateTimeOffset time, IPAddress address);
 }
