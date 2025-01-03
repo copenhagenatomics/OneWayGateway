@@ -6,12 +6,12 @@ ARG LAUNCHING_FROM_VS
 ARG FINAL_BASE_IMAGE=${LAUNCHING_FROM_VS:+aotdebug}
 
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
-FROM mcr.microsoft.com/dotnet/runtime:9.0-preview-bookworm-slim AS base
+FROM mcr.microsoft.com/dotnet/runtime:9.0-bookworm-slim AS base
 USER app
 WORKDIR /app
 
 # This stage is used to build the service project
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0-preview-bookworm-slim AS restore
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0-bookworm-slim AS restore
 ARG TARGETARCH
 # Install clang/zlib1g-dev dependencies for publishing to native
 RUN dpkg --add-architecture arm64 \
@@ -66,7 +66,7 @@ RUN apt-get update \
 USER app
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
-FROM ${FINAL_BASE_IMAGE:-mcr.microsoft.com/dotnet/runtime-deps:9.0-preview-bookworm-slim} AS final
+FROM ${FINAL_BASE_IMAGE:-mcr.microsoft.com/dotnet/runtime-deps:9.0-bookworm-slim} AS final
 EXPOSE 4280/udp
 WORKDIR /app
 COPY --from=publish /app/publish .
