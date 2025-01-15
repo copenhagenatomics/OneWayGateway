@@ -43,13 +43,13 @@ sealed partial class UdpReceiver(IOptions<GatewayOptions> options, ILogger<UdpRe
 
     async Task WaitUntilNetworkInterfaceIsReady(IPAddress address, CancellationToken stoppingToken)
     {
-        var ready = address.Equals(IPAddress.Any) || address.Equals(IPAddress.Loopback);
+        var ready = false;
         while (!ready && !stoppingToken.IsCancellationRequested)
         {
             foreach (var iFace in NetworkInterface.GetAllNetworkInterfaces().Where(i => i.OperationalStatus == OperationalStatus.Up))
             {
                 foreach (var ifAddress in iFace.GetIPProperties().UnicastAddresses)
-                    if (ifAddress.Address.Equals(address))
+                    if (ifAddress.Address.Equals(address) || address.Equals(IPAddress.Any))
                     {
                         ready = true;
                         break;
