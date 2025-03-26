@@ -89,6 +89,10 @@ sealed partial class UdpReceiver(IOptions<GatewayOptions> options, ILogger<UdpRe
                 message?.Dispose();
             }
         }
+        catch (OperationCanceledException ex)
+        {
+            LogSendingError(DateTimeOffset.UtcNow, message, ex);
+        }
         catch (HttpRequestException ex)
         {
             LogSendingError(DateTimeOffset.UtcNow, message, ex);
