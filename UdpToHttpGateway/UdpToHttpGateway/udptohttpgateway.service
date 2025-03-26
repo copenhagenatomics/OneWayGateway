@@ -5,6 +5,7 @@ Description=Udp to Http Gateway
 Type=notify
 WorkingDirectory=/usr/local/sbin/udptohttpgateway
 ExecStart=/usr/local/sbin/udptohttpgateway/UdpToHttpGateway
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
